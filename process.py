@@ -71,13 +71,13 @@ except IOError:
 
 
 # Read reference image
-refFilename = "img_basler.1505292392366.tiff"
+refFilename = "img_basler.1505292392366_.tiff"
 
 print("Reading reference image : ", refFilename)
 imReference = cv2.imread(refFilename, cv2.IMREAD_COLOR)
 
 # Read image to be aligned
-imFilename = "img_lum.1505292339490.jpeg"
+imFilename = "img_lum.1505292339490_.jpeg"
 
 print("Reading image to align : ", imFilename);  
 im = cv2.imread(imFilename, cv2.IMREAD_COLOR)
