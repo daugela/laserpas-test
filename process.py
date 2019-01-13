@@ -1,5 +1,5 @@
 ## Python 3.x
-import cv2, csv, sys
+import cv2, csv, sys, os
 import numpy as np
  
 MAX_FEATURES = 500
@@ -70,19 +70,35 @@ except IOError:
 	sys.exit()
 
 
+'''
 # Read reference image
 refFilename = "img_basler.1505292392366_.tiff"
-
 print("Reading reference image : ", refFilename)
 imReference = cv2.imread(refFilename, cv2.IMREAD_COLOR)
 
 # Read image to be aligned
 imFilename = "img_lum.1505292339490_.jpeg"
-
 print("Reading image to align : ", imFilename);  
 im = cv2.imread(imFilename, cv2.IMREAD_COLOR)
+'''
 
-print("Aligning images ...")
+# Read BASLER_POS/NIR image
+refFilename = monochome_nir[0] #"img_basler.1505292392366_.tiff"
+print("Reading reference image (NIR): ", refFilename)
+imReference = cv2.imread(refFilename, cv2.IMREAD_COLOR)
+
+
+# Read LUMENERA_POS/RGB image
+imFilename = color_rgb[0] #"img_lum.1505292339490_.jpeg"
+print("Reading image to align (RGB): ", imFilename);  
+im = cv2.imread(imFilename, cv2.IMREAD_COLOR)
+
+## Take NIR (first file) name as base for putput png naming and strip all directories
+filename = os.path.basename(refFilename)
+## Take file name and attach .png
+finalfilename = "FinalOutput/final_%s.png" % os.path.splitext(filename)[0]
+
+print("Aligning images into %s" % finalfilename)
 # Registered image will be resotred in imReg. 
 # The estimated homography will be stored in h. 
 imReg, h = alignImages(im, imReference)
@@ -97,13 +113,13 @@ cv2.imwrite('channel-G.jpg', g)
 '''
 
 # Write aligned image to disk. 
-outFilename = "aligned.jpg"
+#outFilename = "aligned.jpg"
+#print("Saving aligned image : ", outFilename); 
+#cv2.imwrite(outFilename, imReg)
 
-print("Saving aligned image : ", outFilename); 
-cv2.imwrite(outFilename, imReg)
 
 # Print estimated homography
-print("Estimated homography : \n",  h)
+#print("Estimated homography : \n",  h)
 
 ##Stack horizontally
 ##vis = np.concatenate((imReference, imReg), axis=1)
@@ -111,7 +127,8 @@ print("Estimated homography : \n",  h)
 
 #imstack = np.hstack(imReference, imReg)
 
-final = cv2.addWeighted(imReg, 0.5, imReference, 0.5, 0)
+## Just do a quick and dirty simple merge of the images using 0.5+0.5 weight of the both RGB and NIR inputs..
+finalimg = cv2.addWeighted(imReg, 0.5, imReference, 0.5, 0)
 
-cv2.imwrite('final.png', final)
+cv2.imwrite(finalfilename, finalimg)
 
