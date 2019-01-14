@@ -1,9 +1,7 @@
+#!/usr/bin/python
 ## Python 3.x
 import cv2, csv, sys, os
 import numpy as np
- 
-MAX_FEATURES = 500
-GOOD_MATCH_PERCENT = 0.15
 
 def alignImages(image1, image2):
 
@@ -50,85 +48,80 @@ def alignImages(image1, image2):
 	return im1Reg, h
 
 
-#Create separate lists of photos for BRG and NIR
-monochome_nir = []
-color_rgb = []
+#Some adjustable photo mapping params according to opencv examples
+MAX_FEATURES = 500
+GOOD_MATCH_PERCENT = 0.15
+
+#Create list of touples for BRG and NIR photos
+batch_photos = []
 
 try:
-	#Try to pen passed file and load it's contents
-	with open('batch_photo_paths.csv') as csvDataFile:
-		csvReader = csv.reader(csvDataFile)
-		## TODO: Check if passed file is formatted correctly. Like only 2 columns, proper images from RGB and NIR cameras etc..
-		## Files should also be accessable..
-		for row in csvReader:
-			monochome_nir.append(row[0])
-			color_rgb.append(row[1])
-	csvDataFile.close()
-
+	if(len(sys.argv) == 2):
+		#Try to pen passed file and load it's contents
+		with open(sys.argv[1]) as csvDataFile:
+			csvReader = csv.reader(csvDataFile)
+			## TODO: Check if passed files are formatted correctly & accessible. Should be 2 columns, proper images from RGB and NIR cameras etc..
+			for row in csvReader:
+				batch_photos.append((row[0], row[1]))
+		csvDataFile.close()
+	else:
+		print("Error: Please pass a csv file with the photos as a parameter.")
+		sys.exit()
 except IOError:
 	print("Error: Import csv file does not exist.")
 	sys.exit()
 
 
-'''
-# Read reference image
-refFilename = "img_basler.1505292392366_.tiff"
-print("Reading reference image : ", refFilename)
-imReference = cv2.imread(refFilename, cv2.IMREAD_COLOR)
+#If we have entries - lets so the magic
+if len(batch_photos) > 0:
+	for collection in batch_photos:
 
-# Read image to be aligned
-imFilename = "img_lum.1505292339490_.jpeg"
-print("Reading image to align : ", imFilename);  
-im = cv2.imread(imFilename, cv2.IMREAD_COLOR)
-'''
+		# Read BASLER_POS/NIR image - first csv column
+		refFilename = collection[0]
+		print("Reading reference image (NIR): ", refFilename)
+		imReference = cv2.imread(refFilename, cv2.IMREAD_COLOR)
 
-# Read BASLER_POS/NIR image
-refFilename = monochome_nir[0] #"img_basler.1505292392366_.tiff"
-print("Reading reference image (NIR): ", refFilename)
-imReference = cv2.imread(refFilename, cv2.IMREAD_COLOR)
+		# Read LUMENERA_POS/RGB image - second csv column
+		imFilename = collection[1]
+		print("Reading image to align (RGB): ", imFilename);  
+		im = cv2.imread(imFilename, cv2.IMREAD_COLOR)
 
+		## Take NIR (first file) name as base for putput png naming and strip all directories
+		filename = os.path.basename(refFilename)
+		## Take file name and attach .png
+		finalfilename = "FinalOutput/final_%s.png" % os.path.splitext(filename)[0]
 
-# Read LUMENERA_POS/RGB image
-imFilename = color_rgb[0] #"img_lum.1505292339490_.jpeg"
-print("Reading image to align (RGB): ", imFilename);  
-im = cv2.imread(imFilename, cv2.IMREAD_COLOR)
+		print("Aligning images into %s" % finalfilename)
+		# Final image will be resotred in imReg. 
+		# The estimated homography will be stored in h. 
+		imReg, h = alignImages(im, imReference)
 
-## Take NIR (first file) name as base for putput png naming and strip all directories
-filename = os.path.basename(refFilename)
-## Take file name and attach .png
-finalfilename = "FinalOutput/final_%s.png" % os.path.splitext(filename)[0]
+		'''
+		#Splitting and Merging Image Channels
+		b,g,r = cv2.split(imReg)
 
-print("Aligning images into %s" % finalfilename)
-# Registered image will be resotred in imReg. 
-# The estimated homography will be stored in h. 
-imReg, h = alignImages(im, imReference)
+		cv2.imwrite('channel-B.jpg', b)
+		cv2.imwrite('channel-R.jpg', r)
+		cv2.imwrite('channel-G.jpg', g)
+		'''
 
-'''
-#Splitting and Merging Image Channels
-b,g,r = cv2.split(imReg)
+		# Write aligned image to disk. 
+		#outFilename = "aligned.jpg"
+		#print("Saving aligned image : ", outFilename); 
+		#cv2.imwrite(outFilename, imReg)
 
-cv2.imwrite('channel-B.jpg', b)
-cv2.imwrite('channel-R.jpg', r)
-cv2.imwrite('channel-G.jpg', g)
-'''
+		# Print estimated homography
+		#print("Estimated homography : \n",  h)
 
-# Write aligned image to disk. 
-#outFilename = "aligned.jpg"
-#print("Saving aligned image : ", outFilename); 
-#cv2.imwrite(outFilename, imReg)
+		##Stack horizontally
+		##vis = np.concatenate((imReference, imReg), axis=1)
+		##cv2.imwrite('side-by-side.png', vis)
 
+		#imstack = np.hstack(imReference, imReg)
 
-# Print estimated homography
-#print("Estimated homography : \n",  h)
+		## Just do a quick and dirty simple merge of the images using 0.5+0.5 weight of the both RGB and NIR inputs..
+		finalimg = cv2.addWeighted(imReg, 0.5, imReference, 0.5, 0)
 
-##Stack horizontally
-##vis = np.concatenate((imReference, imReg), axis=1)
-##cv2.imwrite('side-by-side.png', vis)
-
-#imstack = np.hstack(imReference, imReg)
-
-## Just do a quick and dirty simple merge of the images using 0.5+0.5 weight of the both RGB and NIR inputs..
-finalimg = cv2.addWeighted(imReg, 0.5, imReference, 0.5, 0)
-
-cv2.imwrite(finalfilename, finalimg)
-
+		cv2.imwrite(finalfilename, finalimg)
+else:
+	print("No images found in the input csv file")
