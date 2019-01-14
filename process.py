@@ -96,14 +96,12 @@ if len(batch_photos) > 0:
 		# The estimated homography will be stored in h. 
 		imReg, h = alignImages(im, imReference)
 
-		'''
 		#Splitting and Merging Image Channels
-		b,g,r = cv2.split(imReg)
+		#b,g,r = cv2.split(imReg)
 
-		cv2.imwrite('channel-B.jpg', b)
-		cv2.imwrite('channel-R.jpg', r)
-		cv2.imwrite('channel-G.jpg', g)
-		'''
+		#cv2.imwrite('channel-B.png', b)
+		#cv2.imwrite('channel-R.png', r)
+		#cv2.imwrite('channel-G.png', g)
 
 		# Write aligned image to disk. 
 		#outFilename = "aligned.jpg"
