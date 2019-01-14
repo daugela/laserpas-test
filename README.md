@@ -35,3 +35,5 @@ Install required [OpenCV](https://pypi.org/project/opencv-python/) lib v.4
 Pass prepared csv file (with image paths) to process script for batch processing
 
 `python process.py batch_photo_paths.csv`
+
+Enjoy processed results in FinalOutput directory
